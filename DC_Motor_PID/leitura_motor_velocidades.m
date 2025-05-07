@@ -1,0 +1,76 @@
+% Limpar leituras e gráficos anteriores
+clear;
+close all;
+
+% Configuração da porta serial
+portaSerial = '/dev/ttyUSB0'; % Substitua pela sua porta serial (exemplo: COM3 no Windows)
+taxaBits = 115200;            % Taxa de bits definida no código Arduino
+
+% Abre a conexão serial
+s = serialport(portaSerial, taxaBits);
+
+% Inicializa os gráficos
+figure(1);
+h1 = animatedline('Color', 'b', 'DisplayName', 'Referência de Velocidade');
+h2 = animatedline('Color', 'r', 'DisplayName', 'Velocidade Atual');
+legend;
+title('Controle de Velocidade do Motor');
+xlabel('Tempo (s)');
+ylabel('Velocidade (RPM)');
+grid on;
+
+% Tempo de execução
+tempoInicial = datetime('now');
+duration = seconds(inf); % Tempo de execução do gráfico (ajuste conforme necessário)
+
+% Inicializa arrays para armazenar dados de tempo e leitura
+tempos = [];
+referencias = [];
+velocidades = [];
+pwms = [];
+
+% Usa try-catch para garantir que os dados sejam salvos mesmo em caso de interrupção
+try
+    % Leitura e plotagem em tempo real
+    while datetime('now') - tempoInicial < duration
+        if s.NumBytesAvailable > 0
+            % Lê os valores do Arduino
+            data = readline(s); % Lê uma linha da porta serial
+            valores = str2double(split(data, ' ')); % Divide pelos separadores de espaço
+
+            % Verifica se os dados são válidos
+            if numel(valores) == 3
+                referencia = valores(1);      % Referência de velocidade (RPM)
+                velocidade = valores(2);      % Velocidade atual do motor (RPM)
+                pwm = valores(3);             % Sinal PWM
+                erro = referencia - velocidade;
+
+                % Obtém o tempo atual e adiciona o ponto ao gráfico
+                tempoAtual = datetime('now') - tempoInicial;
+                tempoSegundos = seconds(tempoAtual);
+
+                % Adiciona dados aos arrays
+                tempos = [tempos; tempoSegundos];
+                referencias = [referencias; referencia];
+                velocidades = [velocidades; velocidade];
+                pwms = [pwms; pwm];
+
+                % Adiciona pontos aos gráficos
+                addpoints(h1, tempoSegundos, referencia);
+                addpoints(h2, tempoSegundos, velocidade);
+                drawnow;
+            end
+        end
+    end
+catch ME
+    % Captura a interrupção (por exemplo, fechar a janela do gráfico)
+    disp('Execução interrompida pelo usuário.');
+end
+
+% Fecha a conexão serial
+clear s;
+
+% Salva os dados em um arquivo
+dadosSalvos = [tempos, referencias, velocidades, pwms];
+writematrix(dadosSalvos, 'controle_velocidade_motor_ex.txt', 'Delimiter', '\t');
+disp('Dados salvos com sucesso.');
