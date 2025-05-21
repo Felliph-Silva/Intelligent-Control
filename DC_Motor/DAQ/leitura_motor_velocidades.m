@@ -3,7 +3,7 @@ clear;
 close all;
 
 % Configuração da porta serial
-portaSerial = '/dev/ttyUSB0'; % Substitua pela sua porta serial (exemplo: COM3 no Windows)
+portaSerial = '/dev/ttyACM0'; % Substitua pela sua porta serial (exemplo: COM3 no Windows)
 taxaBits = 115200;            % Taxa de bits definida no código Arduino
 
 % Abre a conexão serial
@@ -72,5 +72,5 @@ clear s;
 
 % Salva os dados em um arquivo
 dadosSalvos = [tempos, referencias, velocidades, pwms];
-writematrix(dadosSalvos, 'controle_velocidade_motor_ex.txt', 'Delimiter', '\t');
+writematrix(dadosSalvos,'motor_dc_malha_fechada.txt', 'Delimiter', '\t');
 disp('Dados salvos com sucesso.');

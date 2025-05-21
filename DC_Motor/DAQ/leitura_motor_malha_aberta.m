@@ -3,7 +3,7 @@ clear;
 close all;
 
 % Configuração da porta serial
-portaSerial = '/dev/ttyUSB0'; % Substitua pela sua porta serial
+portaSerial = '/dev/ttyACM0'; % Substitua pela sua porta serial
 taxaBits = 115200;            % Taxa de bits definida no código Arduino
 
 % Abre a conexão serial
@@ -100,5 +100,5 @@ end
 % Fecha a conexão serial e salva os dados
 clear s;
 dadosSalvos = [fig.UserData.tempos, fig.UserData.referencias, fig.UserData.velocidades, fig.UserData.pwms];
-writematrix(dadosSalvos, 'motor_malha_aberta.txt', 'Delimiter', '\t');
+writematrix(dadosSalvos, 'motor_malha_fechada.txt', 'Delimiter', '\t');
 disp('Dados salvos com sucesso.');
