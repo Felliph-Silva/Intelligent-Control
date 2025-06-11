@@ -13,11 +13,16 @@ volatile long prevT_i = 0;
 // Variáveis globais
 int pwr = 0;
 int direcao = 1;
-float referenciaPWM = 100; // <- PWM fixo aqui
-float velocidadeFiltrada = 0;
-float velocidadeAnterior = 0;
+float v_target= 100;
 long prevT = 0;
 int posPrev = 0;
+
+// Controle
+float Kp = 1.0; // Ganho proporcional
+int pwmSinal = 0;
+
+// Estado do motor
+bool motorAtivo = false;
 
 void setup() {
   Serial.begin(115200);
@@ -30,30 +35,43 @@ void setup() {
 
   attachInterrupt(digitalPinToInterrupt(ENCA), readEncoder, RISING);
 
-  // Define valores iniciais de PWM e direção
-  referenciaPWM = constrain(referenciaPWM, -255, 255);
-  direcao = (referenciaPWM < 0) ? -1 : 1;
-  pwr = abs((int)referenciaPWM);
+  prevT = micros();
 }
 
 void loop() {
-  // Calcular velocidade estimada
+  // Leitura de comando Serial para ligar/desligar o motor
+  if (Serial.available()) {
+    String comando = Serial.readStringUntil('\n');
+    comando.trim();
+    if (comando == "1") {
+      motorAtivo = true;
+    } else if (comando == "0") {
+      motorAtivo = false;
+    }
+  }
+  // Leitura do encoder e cálculo da velocidade
   int pos;
   float vEncoder;
   getEncoderData(pos, vEncoder);
 
   float deltaT;
   float velocidadeCalculada = computeVelocity(pos, deltaT);
+  
+  if (motorAtivo) {
+    // CONTROLE EM MALHA FECHADA
+    float erro = v_target - velocidadeCalculada;
+    pwmSinal = Kp * erro;
+    pwmSinal = constrain(pwmSinal, -255, 255);
 
-  // Filtragem simples
-  velocidadeFiltrada = 0.854 * velocidadeFiltrada + 0.0728 * velocidadeCalculada + 0.0728 * velocidadeAnterior;
-  velocidadeAnterior = velocidadeCalculada;
+    int direcao = (pwmSinal >= 0) ? 1 : -1;
+    int pwr = abs(pwmSinal);
+    setMotor(direcao, pwr, PWM, IN1, IN2);
+  } else {
+    setMotor(0, 0, PWM, IN1, IN2);
+  }
 
-  // Aplicar PWM diretamente (malha aberta)
-  setMotor(direcao, pwr, PWM, IN1, IN2);
-
-  // Enviar dados para análise (Serial)
-  debugOutput(referenciaPWM, velocidadeFiltrada, pwr * direcao);
+  // Envio dos dados para análise
+  debugOutput(v_target, velocidadeCalculada, (motorAtivo ? pwr * direcao : 0));
 
   delay(50);
 }

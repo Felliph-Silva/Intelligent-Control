@@ -6,14 +6,10 @@ close all;
 portaSerial = '/dev/ttyACM0'; % Substitua pela sua porta serial (exemplo: COM3 no Windows)
 taxaBits = 115200;            % Taxa de bits definida no código Arduino
 
-setpoint = "150";
-
 % Abre a conexão serial
 s = serialport(portaSerial, taxaBits);
-pause(2);
+waitfor(seconds(1));
 writeline(s, "1");
-writeline(s, setpoint);
-
 
 % Inicializa os gráficos
 figure(1);
@@ -78,5 +74,5 @@ clear s;
 
 % Salva os dados em um arquivo
 dadosSalvos = [tempos, referencias, velocidades, pwms];
-writematrix(dadosSalvos,'motor_dc_PID.txt', 'Delimiter', '\t');
+writematrix(dadosSalvos,'motor_dc_malha_fechada2.txt', 'Delimiter', '\t');
 disp('Dados salvos com sucesso.');

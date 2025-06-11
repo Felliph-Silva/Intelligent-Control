@@ -71,7 +71,7 @@ void loop() {
   // Saída para depuração
   debugOutput(vtFiltered, v1Filt, v1, e, pwr);
 
-  delay(100);
+  delay(50);
 }
 
 // Função para obter posição e velocidade do encoder (mantida)

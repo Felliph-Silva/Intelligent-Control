@@ -3,7 +3,7 @@ clear;
 close all;
 
 % Nome do arquivo de dados
-nomeArquivo = 'motor_dc_malha_aberta_unfilt.txt';
+nomeArquivo = 'motor_dc_malha_fechada_unfilt1.txt';
 
 % Verifica se o arquivo existe
 if exist(nomeArquivo, 'file') == 2
@@ -13,7 +13,6 @@ if exist(nomeArquivo, 'file') == 2
     % Extrai as colunas dos dados
     tempos = dados(:, 1);          % Tempo (s)
     referencias = dados(:, 2);     % Referência de velocidade (RPM)
-    %referencias = ones(size(tempos)) *86.2745;
     velocidades = dados(:, 3);     % Velocidade atual do motor (RPM)
     erros = referencias - velocidades;          % Sinal de erro (RPM)
     pwms = dados(:, 4);            % Sinal de PWM
@@ -28,26 +27,8 @@ if exist(nomeArquivo, 'file') == 2
     ylabel('Velocidade (RPM)');
     legend;
     grid on;
-
-    figure(2)
-    subplot(2, 1, 1);
-    plot(tempos, erros, 'g', 'DisplayName', 'Sinal de Erro');
-    title('Sinal de Erro');
-    xlabel('Tempo (s)');
-    ylabel('Erro (RPM)');
-    legend;
-    grid on;
-
-    subplot(2, 1, 2);
-    plot(tempos, pwms, 'm', 'DisplayName', 'Sinal de PWM');
-    title('Sinal de PWM');
-    xlabel('Tempo (s)');
-    ylabel('Valor de PWM');
-    ylim([0 260]);
-    legend;
-    grid on;
-
 else
     % Mensagem de erro se o arquivo não existir
     error('Arquivo não encontrado: %s', nomeArquivo);
 end
+

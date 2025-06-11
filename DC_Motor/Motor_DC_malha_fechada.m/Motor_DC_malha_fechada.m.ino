@@ -1,6 +1,6 @@
 // Pinos
-#define ENCA 3 // Verde
-#define ENCB 2 // Amarelo
+#define ENCA 2 // Verde
+#define ENCB 3 // Amarelo
 #define PWM 4
 #define IN1 5
 #define IN2 6
@@ -11,13 +11,18 @@ volatile float velocity_i = 0;
 volatile long prevT_i = 0;
 
 // Variáveis globais
-int pwr = 0;
-int direcao = 1;
-float referenciaPWM = 100; // <- PWM fixo aqui
+float referenciaVelocidade = 100.0; // Referência em RPM
 float velocidadeFiltrada = 0;
 float velocidadeAnterior = 0;
 long prevT = 0;
 int posPrev = 0;
+
+// Controle
+float Kp = 1.0; // Ganho proporcional
+int pwmSinal = 0;
+
+// Controle de estado do motor
+bool motorAtivo = false;
 
 void setup() {
   Serial.begin(115200);
@@ -30,14 +35,21 @@ void setup() {
 
   attachInterrupt(digitalPinToInterrupt(ENCA), readEncoder, RISING);
 
-  // Define valores iniciais de PWM e direção
-  referenciaPWM = constrain(referenciaPWM, -255, 255);
-  direcao = (referenciaPWM < 0) ? -1 : 1;
-  pwr = abs((int)referenciaPWM);
+  prevT = micros();
 }
 
 void loop() {
-  // Calcular velocidade estimada
+  // Checa entrada serial para ativar/desativar motor
+  if (Serial.available()) {
+    char comando = Serial.read();
+    if (comando == '0') {
+      motorAtivo = false;
+    } else if (comando == '1') {
+      motorAtivo = true;
+    }
+  }
+
+  // Leitura do encoder e velocidade
   int pos;
   float vEncoder;
   getEncoderData(pos, vEncoder);
@@ -45,17 +57,27 @@ void loop() {
   float deltaT;
   float velocidadeCalculada = computeVelocity(pos, deltaT);
 
-  // Filtragem simples
+  // Filtragem da velocidade
   velocidadeFiltrada = 0.854 * velocidadeFiltrada + 0.0728 * velocidadeCalculada + 0.0728 * velocidadeAnterior;
   velocidadeAnterior = velocidadeCalculada;
 
-  float velocidade_cl = velocidadeFiltrada / (1+velocidadeFiltrada);
+  if (motorAtivo) {
+    // CONTROLE EM MALHA FECHADA
+    float erro = referenciaVelocidade - velocidadeFiltrada;
+    pwmSinal = Kp * erro;
+    pwmSinal = constrain(pwmSinal, -255, 255);
 
-  // Aplicar PWM diretamente (malha aberta)
-  setMotor(direcao, pwr, PWM, IN1, IN2);
+    int direcao = (pwmSinal >= 0) ? 1 : -1;
+    int pwr = abs(pwmSinal);
 
-  // Enviar dados para análise (Serial)
-  debugOutput(referenciaPWM, velocidade_cl, pwr * direcao);
+    setMotor(direcao, pwr, PWM, IN1, IN2);
+  } else {
+    setMotor(0, 0, PWM, IN1, IN2); // Desliga motor
+    pwmSinal = 0;
+  }
+
+  // Envia dados para serial
+  debugOutput(referenciaVelocidade, velocidadeFiltrada, pwmSinal);
 
   delay(50);
 }
